@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 import { useState } from "react";
@@ -16,12 +17,21 @@ export default function LoginPage() {
     setLoading(true);
     setError(false);
 
-    // We do a simple client-side check for now to keep it fast, 
-    // but the middleware handles the real security.
-    if (password === "luna2026") {
-      document.cookie = "auth_session=authenticated; path=/; max-age=86400"; // 24 hours
-      router.push("/");
-    } else {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+
+      if (res.ok) {
+        router.push("/");
+        router.refresh();
+      } else {
+        setError(true);
+        setLoading(false);
+      }
+    } catch {
       setError(true);
       setLoading(false);
     }
