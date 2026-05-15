@@ -65,7 +65,7 @@ export default function CreatePostPage() {
   const [selectedNiche, setSelectedNiche] = useState("General");
 
   // Campaign state
-  const [strategy, setCampaigns] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<string>("");
 
   const handleEnhance = async () => {
@@ -98,7 +98,7 @@ export default function CreatePostPage() {
 
   useEffect(() => {
     fetch("/api/accounts").then(r => r.json()).then(setConnectedAccounts);
-    fetch("/api/strategy").then(r => r.json()).then(setCampaigns);
+    fetch("/api/campaigns").then(r => r.json()).then(setCampaigns);
   }, []);
 
   // We need a separate state for the preview URL vs the server path
@@ -251,12 +251,12 @@ export default function CreatePostPage() {
                   className="w-full bg-transparent outline-none text-sm font-bold text-slate-900 appearance-none cursor-pointer"
                 >
                   <option value="">Geen Campagne (Standaard)</option>
-                  {strategy.map(c => (
+                  {campaigns.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
-              <Link href="/strategy" className="text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-wider px-2 py-1 bg-slate-50 rounded-md">
+              <Link href="/campaigns" className="text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-wider px-2 py-1 bg-slate-50 rounded-md">
                 Manage
               </Link>
             </div>

@@ -17,7 +17,7 @@ import { motion } from "framer-motion";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Plan Campagne", href: "/strategy", icon: Target },
+  { name: "Plan Campagne", href: "/campaigns", icon: Target },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Nieuwe Tweet", href: "/create", icon: PlusCircle },
   { name: "X Account", href: "/accounts", icon: TwitterIcon },
