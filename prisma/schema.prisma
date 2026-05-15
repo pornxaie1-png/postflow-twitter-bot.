@@ -1,0 +1,76 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// A connected social media account (one per platform)
+model ConnectedAccount {
+  id           String   @id @default(cuid())
+  platform     String   // "instagram" | "twitter" | "linkedin" | "tiktok"
+  username     String
+  displayName  String?
+  avatarUrl    String?
+  accountId    String   // the platform's user/account ID
+  accessToken  String
+  refreshToken String?
+  tokenExpiry  DateTime?
+  scope        String?
+  followersCount Int?    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  posts PostAccount[]
+
+  @@unique([platform])  // one account per platform
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String   @default("active") // "active" | "completed" | "archived"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts Post[]
+}
+
+// A scheduled or published post
+model Post {
+  id          String      @id @default(cuid())
+  content     String
+  mediaPath   String?     // local file path or URL
+  mediaType   String?     // "image" | "video"
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  status      String      @default("draft") // "draft" | "scheduled" | "published" | "failed"
+  errorMsg    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  campaignId  String?
+  campaign    Campaign?   @relation(fields: [campaignId], references: [id])
+  accounts    PostAccount[]
+}
+
+// Join table: which accounts a post targets
+model PostAccount {
+  id        String           @id @default(cuid())
+  post      Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  account   ConnectedAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String
+  status    String           @default("pending") // "pending" | "published" | "failed"
+  errorMsg  String?
+
+  @@unique([postId, accountId])
+}
