@@ -133,7 +133,28 @@ export default function ConnectedAccountsPage() {
                 <TwitterIcon className="w-8 h-8 text-slate-400" />
               </div>
               <p className="text-slate-900 font-bold text-lg">Geen X-account verbonden</p>
-              <p className="text-slate-400 text-sm mt-2">Je account wordt automatisch gekoppeld via je API-keys.</p>
+              <p className="text-slate-400 text-sm mt-2 mb-6">Klik hieronder om je account te koppelen via je API-keys.</p>
+              <button
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    const res = await fetch("/api/accounts/connect", { method: "POST" });
+                    if (res.ok) {
+                      await fetchAccount();
+                    } else {
+                      const err = await res.json();
+                      alert("Fout: " + (err.error || "Onbekende fout"));
+                    }
+                  } catch (e) {
+                    alert("Kan niet verbinden. Check je API-keys.");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all active:scale-95"
+              >
+                Verbind X Account
+              </button>
             </div>
           )}
         </div>

@@ -4,20 +4,27 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Skip login page and API/Static files
+  // Skip login page, auth API, cron API, and static files
   if (
     pathname === '/login' || 
-    pathname.startsWith('/api/auth') || 
+    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/cron') ||
     pathname.startsWith('/_next') || 
+    pathname.startsWith('/favicon') ||
     pathname.includes('.')
   ) {
     return NextResponse.next();
   }
 
-  // 2. Check for auth cookie
+  // Check for auth cookie
   const authCookie = request.cookies.get('auth_session');
   
   if (!authCookie || authCookie.value !== 'authenticated') {
+    // For API routes, return 401
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // For pages, redirect to login
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
@@ -28,13 +35,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
