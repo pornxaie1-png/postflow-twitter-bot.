@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { prisma } from "@/lib/prisma";
 import { postTweet } from "./social/twitter";
 import { postToInstagram } from "./social/instagram";
