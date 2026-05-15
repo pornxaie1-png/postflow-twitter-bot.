@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     // Using a more resilient way to fetch data to bypass TS build issues
-    const campaigns = await (prisma as any).campaign.findMany({
+    const strategy = await (prisma as any).campaign.findMany({
       include: {
         _count: {
           select: { posts: true }
@@ -14,7 +14,7 @@ export async function GET() {
       },
       orderBy: { createdAt: 'desc' }
     });
-    return NextResponse.json(campaigns);
+    return NextResponse.json(strategy);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
