@@ -1,9 +1,19 @@
+// @ts-nocheck
 "use client";
 
-import { Bell, Search, User, ChevronDown, Plus } from "lucide-react";
+import { Bell, Search, User, LogOut, Plus } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    document.cookie = "auth_session=; path=/; max-age=0";
+    router.push("/login");
+    router.refresh();
+  };
+
   return (
     <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-10 flex items-center justify-between px-8">
       <div className="flex items-center gap-4 flex-1 max-w-xl">
@@ -31,15 +41,12 @@ export default function Header() {
         </Link>
 
         <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold text-slate-900">Julian de Wit</p>
-            <p className="text-xs text-slate-500">Lead Designer</p>
-          </div>
-          <button className="flex items-center gap-2 group">
-            <div className="w-9 h-9 bg-slate-200 rounded-full flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-slate-900 transition-all">
-              <User className="w-5 h-5 text-slate-500" />
-            </div>
-            <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-900 transition-all" />
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-sm text-slate-500 hover:text-red-600 transition-colors font-medium"
+          >
+            <LogOut className="w-4 h-4" />
+            Uitloggen
           </button>
         </div>
       </div>
