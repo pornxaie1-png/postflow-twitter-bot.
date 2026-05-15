@@ -303,6 +303,83 @@ export default function CreatePostPage() {
             </div>
           </section>
 
+          {/* AI Caption Generator */}
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">AI Caption Generator</h2>
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <select
+                  value={selectedNiche}
+                  onChange={(e) => setSelectedNiche(e.target.value)}
+                  className="flex-1 bg-white border border-purple-200 rounded-xl py-2.5 px-4 text-sm font-medium outline-none focus:border-purple-500 transition-all"
+                >
+                  {NICHE_OPTIONS.map(n => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleEnhance}
+                  disabled={aiLoading || !content.trim()}
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold text-sm flex items-center gap-2 hover:from-purple-700 hover:to-blue-700 disabled:opacity-40 transition-all active:scale-95 shadow-lg shadow-purple-200"
+                >
+                  {aiLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  {aiLoading ? "Schrijft..." : "AI Caption"}
+                </button>
+              </div>
+              <p className="text-xs text-purple-600">Schrijf een korte beschrijving hierboven, kies je niche, en klik op AI Caption voor een geoptimaliseerde tweet met hashtags.</p>
+              
+              {/* AI Results */}
+              <AnimatePresence>
+                {aiResult && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-3 pt-3 border-t border-purple-200"
+                  >
+                    {/* Main suggestion */}
+                    <div
+                      onClick={() => applyAI(aiResult.enhanced, aiResult.hashtags)}
+                      className="p-4 bg-white rounded-xl border-2 border-purple-200 hover:border-purple-500 cursor-pointer transition-all group"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">⭐ Beste versie</span>
+                        <span className="text-[10px] font-bold text-slate-400 group-hover:text-purple-600 transition-colors">Klik om te gebruiken</span>
+                      </div>
+                      <p className="text-sm text-slate-900 leading-relaxed">{aiResult.enhanced}</p>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {aiResult.hashtags?.slice(0, 4).map((tag: string) => (
+                          <span key={tag} className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Alternatives */}
+                    {aiResult.alternatives?.map((alt: string, i: number) => (
+                      <div
+                        key={i}
+                        onClick={() => applyAI(alt, aiResult.hashtags)}
+                        className="p-3 bg-white/60 rounded-xl border border-slate-200 hover:border-purple-400 cursor-pointer transition-all"
+                      >
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alternatief {i + 1}</span>
+                        <p className="text-sm text-slate-700 mt-1">{alt}</p>
+                      </div>
+                    ))}
+
+                    {/* Reasoning */}
+                    {aiResult.reasoning && (
+                      <p className="text-xs text-purple-600 italic">💡 {aiResult.reasoning}</p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </section>
+
           {/* Media */}
           <section className="space-y-3">
             <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Media</h2>
