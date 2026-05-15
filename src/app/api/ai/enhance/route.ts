@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import Groq from "groq-sdk";
 import { GoogleGenAI } from "@google/genai";
 
 const SYSTEM_PROMPT = `Je bent een expert social media copywriter gespecialiseerd in het laten groeien van adult/NSFW Twitter-accounts. Je kent alle trucs om engagement, clicks en conversies te maximaliseren.
@@ -19,28 +20,56 @@ const SYSTEM_PROMPT = `Je bent een expert social media copywriter gespecialiseer
 6. GEEN EXPLICIETE WOORDEN die Twitter zou flaggen
 
 ### HASHTAG STRATEGIE:
-Gebruik een mix van:
-- 2-3 HIGH VOLUME hashtags (groot bereik, veel concurrentie)
-- 2-3 MEDIUM hashtags (gericht, minder concurrentie)  
-- 1-2 NICHE hashtags (zeer specifiek, trouwe doelgroep)
-- Altijd trending/actuele hashtags meenemen waar relevant
-
-### POPULAIRE CONVERTERENDE HASHTAGS (kies de meest relevante):
-High Volume: #NSFW #OnlyFans #Fansly #RT #ContentCreator #AdultContent
-Medium: #NSFWtwt #lewdtwt #Homemade #Amateur #Viral #TrendingNow #Explore
-Niche (kies op basis van content): #GFE #Cosplay #Fetish #Solo #Lingerie #Curves #Petite #Thick #Goth #Alt #Tattoo #Redhead #Brunette #Blonde #Asian #Latina #Ebony #MILF #Teen18 #College
+Gebruik PRECIES 2 relevante hashtags. Kies de meest trending/relevante voor het type content.
 
 ### OUTPUT FORMAT:
 Geef ALTIJD exact dit JSON-formaat terug, NIETS ANDERS:
 {
   "enhanced": "De verbeterde tweet tekst (zonder hashtags)",
-  "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5", "#tag6", "#tag7"],
+  "hashtags": ["#tag1", "#tag2"],
   "reasoning": "Korte uitleg waarom deze versie beter converteert",
   "alternatives": [
     "Alternatieve versie 1 (ander perspectief/tone)",
     "Alternatieve versie 2 (meer urgentie/FOMO)"
   ]
 }`;
+
+async function generateWithGroq(userPrompt: string): Promise<any> {
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: userPrompt },
+    ],
+    temperature: 0.9,
+    max_tokens: 1024,
+    response_format: { type: "json_object" },
+  });
+
+  const text = completion.choices[0]?.message?.content || "";
+  return JSON.parse(text);
+}
+
+async function generateWithGemini(userPrompt: string): Promise<any> {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+  
+  const response = await ai.models.generateContent({
+    model: "gemini-1.5-flash",
+    contents: userPrompt,
+    config: {
+      systemInstruction: SYSTEM_PROMPT,
+      temperature: 0.9,
+      maxOutputTokens: 1024,
+    },
+  });
+
+  const text = response.text || "";
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("Invalid response");
+  return JSON.parse(jsonMatch[0]);
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,13 +79,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Draft tekst is vereist" }, { status: 400 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "GEMINI_API_KEY niet geconfigureerd in .env.local" }, { status: 500 });
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
-
     const userPrompt = `
 Verbeter deze tweet voor maximale engagement en conversie:
 
@@ -64,49 +86,33 @@ DRAFT: "${draft}"
 ${style ? `GEWENSTE STIJL: ${style}` : ""}
 ${niche ? `NICHE/TYPE CONTENT: ${niche}` : ""}
 
-Maak er een killer tweet van die likes, retweets en link-clicks oplevert. Gebruik de meest relevante hashtags voor dit type content. Geef het resultaat als JSON.`;
+Maak er een killer tweet van die likes, retweets en link-clicks oplevert. Gebruik PRECIES 2 relevante hashtags. Geef het resultaat als JSON.`;
 
-    // Try with retry logic for rate limits
-    let lastError = "";
-    for (let attempt = 0; attempt < 3; attempt++) {
+    // Try Groq first (faster, higher limits), fallback to Gemini
+    if (process.env.GROQ_API_KEY) {
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-1.5-flash",
-          contents: userPrompt,
-          config: {
-            systemInstruction: SYSTEM_PROMPT,
-            temperature: 0.9,
-            maxOutputTokens: 1024,
-          },
-        });
-
-        const text = response.text || "";
-        
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          return NextResponse.json({ error: "AI gaf geen geldig antwoord", raw: text }, { status: 500 });
-        }
-
-        const result = JSON.parse(jsonMatch[0]);
+        const result = await generateWithGroq(userPrompt);
         return NextResponse.json(result);
-      } catch (retryError: any) {
-        lastError = retryError.message;
-        if (retryError.message?.includes("429") || retryError.message?.includes("RESOURCE_EXHAUSTED")) {
-          // Wait 2 seconds before retrying
-          await new Promise(r => setTimeout(r, 2000));
-          continue;
-        }
-        break; // Non-rate-limit error, don't retry
+      } catch (groqError: any) {
+        console.error("Groq failed, trying Gemini:", groqError.message);
       }
     }
 
-    return NextResponse.json({ error: "AI is even druk. Probeer het over 10 seconden opnieuw." }, { status: 429 });
+    // Fallback to Gemini
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const result = await generateWithGemini(userPrompt);
+        return NextResponse.json(result);
+      } catch (geminiError: any) {
+        console.error("Gemini also failed:", geminiError.message);
+        return NextResponse.json({ error: "AI is even druk. Probeer het over 10 seconden opnieuw." }, { status: 429 });
+      }
+    }
+
+    return NextResponse.json({ error: "Geen AI API key geconfigureerd. Voeg GROQ_API_KEY of GEMINI_API_KEY toe." }, { status: 500 });
 
   } catch (error: any) {
     console.error("AI Enhance Error:", error.message);
-    if (error.message?.includes("429") || error.message?.includes("quota")) {
-      return NextResponse.json({ error: "AI is even druk. Wacht 10 seconden en probeer opnieuw." }, { status: 429 });
-    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
