@@ -66,29 +66,47 @@ ${niche ? `NICHE/TYPE CONTENT: ${niche}` : ""}
 
 Maak er een killer tweet van die likes, retweets en link-clicks oplevert. Gebruik de meest relevante hashtags voor dit type content. Geef het resultaat als JSON.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: userPrompt,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        temperature: 0.9,
-        maxOutputTokens: 1024,
-      },
-    });
+    // Try with retry logic for rate limits
+    let lastError = "";
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-1.5-flash",
+          contents: userPrompt,
+          config: {
+            systemInstruction: SYSTEM_PROMPT,
+            temperature: 0.9,
+            maxOutputTokens: 1024,
+          },
+        });
 
-    const text = response.text || "";
-    
-    // Extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return NextResponse.json({ error: "AI gaf geen geldig antwoord", raw: text }, { status: 500 });
+        const text = response.text || "";
+        
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          return NextResponse.json({ error: "AI gaf geen geldig antwoord", raw: text }, { status: 500 });
+        }
+
+        const result = JSON.parse(jsonMatch[0]);
+        return NextResponse.json(result);
+      } catch (retryError: any) {
+        lastError = retryError.message;
+        if (retryError.message?.includes("429") || retryError.message?.includes("RESOURCE_EXHAUSTED")) {
+          // Wait 2 seconds before retrying
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+        break; // Non-rate-limit error, don't retry
+      }
     }
 
-    const result = JSON.parse(jsonMatch[0]);
-    return NextResponse.json(result);
+    return NextResponse.json({ error: "AI is even druk. Probeer het over 10 seconden opnieuw." }, { status: 429 });
 
   } catch (error: any) {
     console.error("AI Enhance Error:", error.message);
+    if (error.message?.includes("429") || error.message?.includes("quota")) {
+      return NextResponse.json({ error: "AI is even druk. Wacht 10 seconden en probeer opnieuw." }, { status: 429 });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
