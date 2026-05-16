@@ -96,14 +96,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Draft tekst is vereist" }, { status: 400 });
     }
 
+    const nicheHashtags: Record<string, string> = {
+      "Lingerie / Boudoir": "use hashtags like #lingerie #boudoir #lace #intimate",
+      "Cosplay": "use hashtags like #cosplay #cosplaygirl #anime",
+      "GFE (Girlfriend Experience)": "use hashtags like #GFE #girlfriend #cute",
+      "Fetish": "use hashtags like #fetish #kink #kinky",
+      "Solo": "use hashtags like #solo #onlyme #selflove",
+      "Couples": "use hashtags like #couple #couplegoals #hot",
+      "Alt / Goth": "use hashtags like #goth #alt #gothgirl #egirl",
+      "Fitness": "use hashtags like #fit #fitgirl #gym #gains",
+      "Curves / Thick": "use hashtags like #thick #curves #curvy #body",
+      "Petite": "use hashtags like #petite #tiny #small",
+      "Custom Content": "use hashtags like #custom #exclusive #personalized",
+      "PPV / Exclusives": "use hashtags like #exclusive #PPV #premium",
+      "General": "pick 2 trending NSFW hashtags that fit the content",
+    };
+
+    const nicheGuide = nicheHashtags[niche || "General"] || nicheHashtags["General"];
+
     const userPrompt = `
-Verbeter deze tweet voor maximale engagement en conversie:
+Write a spicy caption for this NSFW tweet. The content/niche is: ${niche || "General"}
 
-DRAFT: "${draft}"
-${style ? `GEWENSTE STIJL: ${style}` : ""}
-${niche ? `NICHE/TYPE CONTENT: ${niche}` : ""}
+What the image shows: "${draft}"
 
-Maak er een killer tweet van die likes, retweets en link-clicks oplevert. Gebruik PRECIES 2 relevante hashtags. Geef het resultaat als JSON.`;
+Instructions:
+- Write a caption that matches the ${niche || "general"} vibe specifically
+- ${nicheGuide}
+- Make it provocative and engaging, NOT generic
+- Caption must relate to what the image actually shows
+- Return as JSON`;
 
     // Try Groq first (faster, higher limits), fallback to Gemini
     if (process.env.GROQ_API_KEY) {
