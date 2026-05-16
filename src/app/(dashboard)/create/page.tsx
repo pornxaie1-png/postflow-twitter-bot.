@@ -367,6 +367,11 @@ export default function CreatePostPage() {
                       >
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alternatief {i + 1}</span>
                         <p className="text-sm text-slate-700 mt-1">{alt}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {aiResult.hashtags?.map((tag: string) => (
+                            <span key={tag} className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">{tag}</span>
+                          ))}
+                        </div>
                       </div>
                     ))}
 
